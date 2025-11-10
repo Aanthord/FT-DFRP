@@ -6,6 +6,10 @@
     <title>FT-DFRP Live Network Demo</title>
     <link rel="manifest" href="./manifest.json">
     <meta name="theme-color" content="#00ff88">
+    <!-- Cache Busting -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <style>
         body {
             margin: 0;
@@ -401,16 +405,23 @@
 
                 pc.onicecandidate = (event) => {
                     if (event.candidate) {
-                        this.signalingChannel.postMessage({
-                            type: 'ice-candidate',
-                            nodeId: this.nodeId,
-                            targetId: peerId,
-                            candidate: {
+                        try {
+                            const serializedCandidate = {
                                 candidate: event.candidate.candidate,
                                 sdpMLineIndex: event.candidate.sdpMLineIndex,
                                 sdpMid: event.candidate.sdpMid
-                            }
-                        });
+                            };
+                            
+                            this.signalingChannel.postMessage({
+                                type: 'ice-candidate',
+                                nodeId: this.nodeId,
+                                targetId: peerId,
+                                candidate: serializedCandidate
+                            });
+                        } catch (error) {
+                            this.log(`Failed to send ICE candidate: ${error.message}`, 'error');
+                            console.error('ICE candidate error:', error, event.candidate);
+                        }
                     }
                 };
 
@@ -447,16 +458,23 @@
 
                 pc.onicecandidate = (event) => {
                     if (event.candidate) {
-                        this.signalingChannel.postMessage({
-                            type: 'ice-candidate',
-                            nodeId: this.nodeId,
-                            targetId: message.nodeId,
-                            candidate: {
+                        try {
+                            const serializedCandidate = {
                                 candidate: event.candidate.candidate,
                                 sdpMLineIndex: event.candidate.sdpMLineIndex,
                                 sdpMid: event.candidate.sdpMid
-                            }
-                        });
+                            };
+                            
+                            this.signalingChannel.postMessage({
+                                type: 'ice-candidate',
+                                nodeId: this.nodeId,
+                                targetId: message.nodeId,
+                                candidate: serializedCandidate
+                            });
+                        } catch (error) {
+                            this.log(`Failed to send ICE candidate: ${error.message}`, 'error');
+                            console.error('ICE candidate error:', error, event.candidate);
+                        }
                     }
                 };
 
@@ -801,6 +819,9 @@
                         <p>Real-time P2P mesh demonstration with WebRTC</p>
                         <p style={{fontSize: '0.9em', opacity: 0.8}}>
                             Node ID: {network?.nodeId?.slice(-12) || 'Initializing...'}
+                        </p>
+                        <p style={{fontSize: '0.8em', opacity: 0.6, color: '#888'}}>
+                            v2.1 - Fixed ICE Candidate Cloning
                         </p>
                     </div>
 
