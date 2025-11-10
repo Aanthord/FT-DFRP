@@ -266,20 +266,32 @@
             }
 
             async initializeSignaling() {
-                // Use BroadcastChannel for same-origin peer discovery
-                this.signalingChannel = new BroadcastChannel('ft-dfrp-signaling');
-                this.signalingChannel.onmessage = (event) => {
-                    this.handleSignalingMessage(event.data);
-                };
+                // Check for BroadcastChannel support
+                if (typeof BroadcastChannel === 'undefined') {
+                    this.log('BroadcastChannel not supported - running in isolated mode', 'warning');
+                    return;
+                }
 
-                // Announce presence
-                this.announcePresence();
-                
-                // Periodic announcements
-                setInterval(() => {
+                try {
+                    // Use BroadcastChannel for same-origin peer discovery
+                    this.signalingChannel = new BroadcastChannel('ft-dfrp-signaling');
+                    this.signalingChannel.onmessage = (event) => {
+                        this.handleSignalingMessage(event.data);
+                    };
+
+                    // Announce presence
                     this.announcePresence();
-                    this.cleanupStaleConnections();
-                }, 5000);
+                    
+                    // Periodic announcements
+                    setInterval(() => {
+                        this.announcePresence();
+                        this.cleanupStaleConnections();
+                    }, 5000);
+
+                    this.log('P2P signaling initialized');
+                } catch (error) {
+                    this.log(`Signaling initialization failed: ${error.message}`, 'error');
+                }
             }
 
             announcePresence() {
@@ -338,6 +350,27 @@
                 this.onNetworkUpdate();
             }
 
+            announcePresence() {
+                if (!this.signalingChannel) {
+                    this.log('No signaling channel available', 'warning');
+                    return;
+                }
+
+                const message = {
+                    type: 'presence',
+                    nodeId: this.nodeId,
+                    timestamp: Date.now(),
+                    nodeData: this.networkData.nodes.get(this.nodeId)
+                };
+                
+                try {
+                    this.signalingChannel.postMessage(message);
+                    this.log(`Broadcasting presence: ${this.nodeId.slice(-8)}`);
+                } catch (error) {
+                    this.log(`Failed to broadcast presence: ${error.message}`, 'error');
+                }
+            }
+
             async connectToPeer(peerId) {
                 if (this.connections.has(peerId)) return;
 
@@ -372,7 +405,11 @@
                             type: 'ice-candidate',
                             nodeId: this.nodeId,
                             targetId: peerId,
-                            candidate: event.candidate
+                            candidate: {
+                                candidate: event.candidate.candidate,
+                                sdpMLineIndex: event.candidate.sdpMLineIndex,
+                                sdpMid: event.candidate.sdpMid
+                            }
                         });
                     }
                 };
@@ -414,7 +451,11 @@
                             type: 'ice-candidate',
                             nodeId: this.nodeId,
                             targetId: message.nodeId,
-                            candidate: event.candidate
+                            candidate: {
+                                candidate: event.candidate.candidate,
+                                sdpMLineIndex: event.candidate.sdpMLineIndex,
+                                sdpMid: event.candidate.sdpMid
+                            }
                         });
                     }
                 };
@@ -446,8 +487,13 @@
                 if (message.targetId !== this.nodeId) return;
 
                 const pc = this.peers.get(message.nodeId);
-                if (pc) {
-                    await pc.addIceCandidate(message.candidate);
+                if (pc && message.candidate) {
+                    try {
+                        const iceCandidate = new RTCIceCandidate(message.candidate);
+                        await pc.addIceCandidate(iceCandidate);
+                    } catch (error) {
+                        this.log(`Failed to add ICE candidate: ${error.message}`, 'error');
+                    }
                 }
             }
 
@@ -595,6 +641,16 @@
                 });
             }
 
+            log(message, type = 'info') {
+                const timestamp = new Date().toLocaleTimeString();
+                const logEntry = { message: `[${timestamp}] ${message}`, type };
+                
+                if (this.onLog) {
+                    this.onLog(logEntry);
+                }
+                console.log(`[FT-DFRP] ${message}`);
+            }
+
             getNetworkStats() {
                 return {
                     totalNodes: this.networkData.nodes.size,
@@ -625,20 +681,30 @@
             const canvasRef = useRef();
 
             useEffect(() => {
-                const networkManager = new P2PNetworkManager(() => {
-                    setNetwork(prev => ({ ...prev })); // Force re-render
-                });
+                try {
+                    const networkManager = new P2PNetworkManager(() => {
+                        setNetwork(prev => ({ ...prev })); // Force re-render
+                    });
 
-                networkManager.onLog = (logEntry) => {
-                    setLogs(prev => [...prev.slice(-20), logEntry]); // Keep last 20 logs
-                };
+                    networkManager.onLog = (logEntry) => {
+                        setLogs(prev => [...prev.slice(-20), logEntry]); // Keep last 20 logs
+                    };
 
-                setNetwork(networkManager);
+                    setNetwork(networkManager);
+                    console.log('[FT-DFRP] Network manager initialized');
+                } catch (error) {
+                    console.error('[FT-DFRP] Failed to initialize network:', error);
+                    setLogs([{ message: `Failed to initialize: ${error.message}`, type: 'error' }]);
+                }
 
                 // Update stats periodically
                 const statsInterval = setInterval(() => {
-                    if (networkManager) {
-                        setStats(networkManager.getNetworkStats());
+                    if (network && network.getNetworkStats) {
+                        try {
+                            setStats(network.getNetworkStats());
+                        } catch (error) {
+                            console.warn('[FT-DFRP] Stats update failed:', error);
+                        }
                     }
                 }, 1000);
 
@@ -781,8 +847,12 @@
                             Distribute Parity
                         </button>
                         <button onClick={() => {
-                            if (network) network.announcePresence();
-                            showAnnouncement('Broadcasting presence');
+                            if (network && network.announcePresence) {
+                                network.announcePresence();
+                                showAnnouncement('Broadcasting presence');
+                            } else {
+                                showAnnouncement('Network not ready');
+                            }
                         }}>
                             Broadcast Presence
                         </button>
@@ -847,8 +917,10 @@
                     console.log('[FT-DFRP] Service worker registered:', registration.scope);
                 })
                 .catch((error) => {
-                    console.log('[FT-DFRP] Service worker registration failed:', error);
+                    console.log('[FT-DFRP] Service worker registration failed (this is ok for testing):', error);
                 });
+        } else {
+            console.log('[FT-DFRP] Service worker not supported in this browser');
         }
     </script>
 </body>
