@@ -1,0 +1,855 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FT-DFRP Live Network Demo</title>
+    <link rel="manifest" href="./manifest.json">
+    <meta name="theme-color" content="#00ff88">
+    <style>
+        body {
+            margin: 0;
+            font-family: 'Monaco', 'Consolas', monospace;
+            background: linear-gradient(135deg, #0a0a0a, #1a1a2e);
+            color: #00ff88;
+            overflow-x: hidden;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+            padding: 20px;
+            background: rgba(0,255,136,0.1);
+            border: 1px solid #00ff88;
+            border-radius: 10px;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 2.2em;
+            text-shadow: 0 0 10px #00ff88;
+            color: #00ff88;
+        }
+        .network-status {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        .status-panel {
+            background: rgba(0,0,0,0.6);
+            border: 1px solid #00ff88;
+            border-radius: 8px;
+            padding: 15px;
+        }
+        .status-title {
+            color: #00ff88;
+            font-weight: bold;
+            margin-bottom: 10px;
+            border-bottom: 1px solid #00ff88;
+            padding-bottom: 5px;
+        }
+        .peer-list {
+            margin: 10px 0;
+        }
+        .peer-item {
+            background: rgba(0,255,136,0.1);
+            padding: 8px;
+            margin: 5px 0;
+            border-radius: 4px;
+            border-left: 3px solid #00ff88;
+            font-size: 0.9em;
+        }
+        .peer-connecting {
+            border-left-color: #ffaa00;
+            background: rgba(255,170,0,0.1);
+        }
+        .peer-failed {
+            border-left-color: #ff4444;
+            background: rgba(255,68,68,0.1);
+        }
+        .network-canvas {
+            width: 100%;
+            height: 500px;
+            background: #000;
+            border: 2px solid #00ff88;
+            border-radius: 8px;
+            position: relative;
+            overflow: hidden;
+            margin: 20px 0;
+        }
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin: 15px 0;
+            flex-wrap: wrap;
+        }
+        button {
+            background: linear-gradient(45deg, #00ff88, #008844);
+            color: #000;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-family: inherit;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+        button:hover:not(:disabled) {
+            transform: scale(1.05);
+            box-shadow: 0 0 15px rgba(0,255,136,0.5);
+        }
+        button:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .node {
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            border: 2px solid #00ff88;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .node-local {
+            background: #00ff88;
+            box-shadow: 0 0 15px #00ff88;
+            animation: pulse 2s infinite;
+        }
+        .node-peer {
+            background: #0088ff;
+            border-color: #0088ff;
+        }
+        .node-selected {
+            transform: scale(1.5);
+            box-shadow: 0 0 20px #ffffff;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+        .connection {
+            position: absolute;
+            height: 2px;
+            background: rgba(0,255,136,0.4);
+            transform-origin: left center;
+        }
+        .connection-active {
+            background: #00ff88;
+            animation: data-flow 1s infinite;
+        }
+        @keyframes data-flow {
+            0%, 100% { opacity: 0.4; }
+            50% { opacity: 1; }
+        }
+        .route-path {
+            background: #ff6600;
+            height: 3px;
+            z-index: 10;
+        }
+        .info-display {
+            background: rgba(0,0,0,0.8);
+            border: 1px solid #00ff88;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 20px 0;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        .log-entry {
+            margin: 5px 0;
+            padding: 5px;
+            border-radius: 3px;
+            font-size: 0.9em;
+        }
+        .log-info { background: rgba(0,255,136,0.1); }
+        .log-warning { background: rgba(255,170,0,0.1); color: #ffaa00; }
+        .log-error { background: rgba(255,68,68,0.1); color: #ff4444; }
+        .performance-metrics {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 10px;
+            margin: 20px 0;
+        }
+        .metric {
+            background: rgba(0,255,136,0.1);
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #00ff88;
+            text-align: center;
+        }
+        .metric-value {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #00ff88;
+        }
+        .metric-label {
+            font-size: 0.8em;
+            opacity: 0.8;
+        }
+        .announcement-bar {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            background: rgba(0,255,136,0.9);
+            color: #000;
+            padding: 10px 15px;
+            border-radius: 5px;
+            font-weight: bold;
+            z-index: 1000;
+            transform: translateX(100%);
+            transition: transform 0.3s;
+        }
+        .announcement-bar.show {
+            transform: translateX(0);
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+    <div id="announcement" class="announcement-bar"></div>
+
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef, useCallback } = React;
+
+        // Generate unique node ID based on browser fingerprint + timestamp
+        const generateNodeId = () => {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            ctx.textBaseline = 'top';
+            ctx.font = '14px Arial';
+            ctx.fillText('Browser fingerprint', 2, 2);
+            const fingerprint = canvas.toDataURL().slice(-50);
+            return `node_${fingerprint}_${Date.now()}`.replace(/[^a-zA-Z0-9_]/g, '');
+        };
+
+        // WebRTC P2P Network Manager
+        class P2PNetworkManager {
+            constructor(onNetworkUpdate) {
+                this.nodeId = generateNodeId();
+                this.peers = new Map();
+                this.connections = new Map();
+                this.onNetworkUpdate = onNetworkUpdate;
+                this.isHost = false;
+                this.signalingChannel = null;
+                this.networkData = {
+                    nodes: new Map(),
+                    routes: new Map(),
+                    parityMap: new Map()
+                };
+                
+                this.initializeSignaling();
+                this.setupLocalNode();
+            }
+
+            setupLocalNode() {
+                this.networkData.nodes.set(this.nodeId, {
+                    id: this.nodeId,
+                    x: Math.random() * 90 + 5,
+                    y: Math.random() * 90 + 5,
+                    density: Math.random(),
+                    coherence: Math.random(),
+                    vector: Array(8).fill(0).map(() => Math.random() * 2 - 1),
+                    isLocal: true,
+                    connected: true,
+                    lastSeen: Date.now()
+                });
+            }
+
+            async initializeSignaling() {
+                // Use BroadcastChannel for same-origin peer discovery
+                this.signalingChannel = new BroadcastChannel('ft-dfrp-signaling');
+                this.signalingChannel.onmessage = (event) => {
+                    this.handleSignalingMessage(event.data);
+                };
+
+                // Announce presence
+                this.announcePresence();
+                
+                // Periodic announcements
+                setInterval(() => {
+                    this.announcePresence();
+                    this.cleanupStaleConnections();
+                }, 5000);
+            }
+
+            announcePresence() {
+                const message = {
+                    type: 'presence',
+                    nodeId: this.nodeId,
+                    timestamp: Date.now(),
+                    nodeData: this.networkData.nodes.get(this.nodeId)
+                };
+                this.signalingChannel.postMessage(message);
+            }
+
+            async handleSignalingMessage(message) {
+                if (message.nodeId === this.nodeId) return;
+
+                switch (message.type) {
+                    case 'presence':
+                        await this.handlePeerDiscovery(message);
+                        break;
+                    case 'offer':
+                        await this.handleOffer(message);
+                        break;
+                    case 'answer':
+                        await this.handleAnswer(message);
+                        break;
+                    case 'ice-candidate':
+                        await this.handleIceCandidate(message);
+                        break;
+                    case 'network-update':
+                        this.handleNetworkUpdate(message);
+                        break;
+                }
+            }
+
+            async handlePeerDiscovery(message) {
+                if (this.peers.has(message.nodeId)) {
+                    // Update existing peer
+                    this.networkData.nodes.set(message.nodeId, {
+                        ...message.nodeData,
+                        lastSeen: Date.now()
+                    });
+                } else {
+                    // New peer discovered
+                    this.log(`Discovered peer: ${message.nodeId.slice(-8)}`);
+                    this.networkData.nodes.set(message.nodeId, {
+                        ...message.nodeData,
+                        isLocal: false,
+                        lastSeen: Date.now()
+                    });
+                    
+                    // Initiate connection if we have fewer connections or lower nodeId (prevents duplicate connections)
+                    if (this.connections.size < 3 && this.nodeId < message.nodeId) {
+                        await this.connectToPeer(message.nodeId);
+                    }
+                }
+                this.onNetworkUpdate();
+            }
+
+            async connectToPeer(peerId) {
+                if (this.connections.has(peerId)) return;
+
+                const pc = new RTCPeerConnection({
+                    iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
+                });
+
+                // Setup data channel
+                const dataChannel = pc.createDataChannel('ft-dfrp', {
+                    ordered: true
+                });
+                
+                dataChannel.onopen = () => {
+                    this.log(`Connected to peer: ${peerId.slice(-8)}`);
+                    this.connections.set(peerId, { pc, dataChannel });
+                    this.setupDataChannelHandlers(dataChannel, peerId);
+                    this.syncNetworkState(peerId);
+                };
+
+                dataChannel.onerror = (error) => {
+                    this.log(`Data channel error with ${peerId.slice(-8)}: ${error}`, 'error');
+                };
+
+                pc.ondatachannel = (event) => {
+                    const channel = event.channel;
+                    this.setupDataChannelHandlers(channel, peerId);
+                };
+
+                pc.onicecandidate = (event) => {
+                    if (event.candidate) {
+                        this.signalingChannel.postMessage({
+                            type: 'ice-candidate',
+                            nodeId: this.nodeId,
+                            targetId: peerId,
+                            candidate: event.candidate
+                        });
+                    }
+                };
+
+                // Create offer
+                const offer = await pc.createOffer();
+                await pc.setLocalDescription(offer);
+
+                this.signalingChannel.postMessage({
+                    type: 'offer',
+                    nodeId: this.nodeId,
+                    targetId: peerId,
+                    offer: offer
+                });
+
+                this.peers.set(peerId, pc);
+            }
+
+            async handleOffer(message) {
+                if (message.targetId !== this.nodeId) return;
+
+                const pc = new RTCPeerConnection({
+                    iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
+                });
+
+                pc.ondatachannel = (event) => {
+                    const dataChannel = event.channel;
+                    dataChannel.onopen = () => {
+                        this.log(`Accepted connection from: ${message.nodeId.slice(-8)}`);
+                        this.connections.set(message.nodeId, { pc, dataChannel });
+                        this.setupDataChannelHandlers(dataChannel, message.nodeId);
+                        this.syncNetworkState(message.nodeId);
+                    };
+                };
+
+                pc.onicecandidate = (event) => {
+                    if (event.candidate) {
+                        this.signalingChannel.postMessage({
+                            type: 'ice-candidate',
+                            nodeId: this.nodeId,
+                            targetId: message.nodeId,
+                            candidate: event.candidate
+                        });
+                    }
+                };
+
+                await pc.setRemoteDescription(message.offer);
+                const answer = await pc.createAnswer();
+                await pc.setLocalDescription(answer);
+
+                this.signalingChannel.postMessage({
+                    type: 'answer',
+                    nodeId: this.nodeId,
+                    targetId: message.nodeId,
+                    answer: answer
+                });
+
+                this.peers.set(message.nodeId, pc);
+            }
+
+            async handleAnswer(message) {
+                if (message.targetId !== this.nodeId) return;
+
+                const pc = this.peers.get(message.nodeId);
+                if (pc) {
+                    await pc.setRemoteDescription(message.answer);
+                }
+            }
+
+            async handleIceCandidate(message) {
+                if (message.targetId !== this.nodeId) return;
+
+                const pc = this.peers.get(message.nodeId);
+                if (pc) {
+                    await pc.addIceCandidate(message.candidate);
+                }
+            }
+
+            setupDataChannelHandlers(dataChannel, peerId) {
+                dataChannel.onmessage = (event) => {
+                    try {
+                        const data = JSON.parse(event.data);
+                        this.handleP2PMessage(data, peerId);
+                    } catch (e) {
+                        this.log(`Invalid message from ${peerId.slice(-8)}`, 'error');
+                    }
+                };
+
+                dataChannel.onclose = () => {
+                    this.log(`Connection closed: ${peerId.slice(-8)}`, 'warning');
+                    this.connections.delete(peerId);
+                    this.peers.delete(peerId);
+                    this.onNetworkUpdate();
+                };
+            }
+
+            handleP2PMessage(data, fromPeer) {
+                switch (data.type) {
+                    case 'network-sync':
+                        this.mergeNetworkState(data.networkState);
+                        break;
+                    case 'route-request':
+                        this.handleRouteRequest(data, fromPeer);
+                        break;
+                    case 'parity-announce':
+                        this.handleParityAnnouncement(data);
+                        break;
+                    case 'ann-query':
+                        this.handleANNQuery(data, fromPeer);
+                        break;
+                }
+                this.onNetworkUpdate();
+            }
+
+            syncNetworkState(peerId) {
+                const connection = this.connections.get(peerId);
+                if (connection?.dataChannel?.readyState === 'open') {
+                    const message = {
+                        type: 'network-sync',
+                        networkState: {
+                            nodes: Object.fromEntries(this.networkData.nodes),
+                            timestamp: Date.now()
+                        }
+                    };
+                    connection.dataChannel.send(JSON.stringify(message));
+                }
+            }
+
+            mergeNetworkState(remoteState) {
+                // Merge remote network state with local state
+                Object.entries(remoteState.nodes).forEach(([nodeId, nodeData]) => {
+                    if (nodeId !== this.nodeId) {
+                        const existing = this.networkData.nodes.get(nodeId);
+                        if (!existing || nodeData.lastSeen > existing.lastSeen) {
+                            this.networkData.nodes.set(nodeId, {
+                                ...nodeData,
+                                connected: this.connections.has(nodeId)
+                            });
+                        }
+                    }
+                });
+            }
+
+            findKNearest(queryNodeId, k) {
+                const queryNode = this.networkData.nodes.get(queryNodeId);
+                if (!queryNode) return [];
+
+                const results = [];
+                this.networkData.nodes.forEach((node, nodeId) => {
+                    if (nodeId !== queryNodeId) {
+                        const similarity = this.cosineSimilarity(queryNode.vector, node.vector);
+                        const score = similarity * queryNode.coherence + node.density;
+                        results.push({ nodeId, similarity, score });
+                    }
+                });
+
+                return results.sort((a, b) => b.score - a.score).slice(0, k);
+            }
+
+            cosineSimilarity(vecA, vecB) {
+                let dot = 0, normA = 0, normB = 0;
+                for (let i = 0; i < vecA.length; i++) {
+                    dot += vecA[i] * vecB[i];
+                    normA += vecA[i] * vecA[i];
+                    normB += vecB[i] * vecB[i];
+                }
+                return (normA === 0 || normB === 0) ? 0 : dot / (Math.sqrt(normA) * Math.sqrt(normB));
+            }
+
+            broadcastToNetwork(message) {
+                this.connections.forEach((connection, peerId) => {
+                    if (connection.dataChannel?.readyState === 'open') {
+                        connection.dataChannel.send(JSON.stringify(message));
+                    }
+                });
+            }
+
+            distributeParity(tag) {
+                const announcement = {
+                    type: 'parity-announce',
+                    tag,
+                    nodeId: this.nodeId,
+                    timestamp: Date.now()
+                };
+                
+                this.networkData.parityMap.set(tag, {
+                    holders: [this.nodeId],
+                    created: Date.now()
+                });
+
+                this.broadcastToNetwork(announcement);
+                this.log(`Distributed parity: ${tag}`);
+            }
+
+            handleParityAnnouncement(data) {
+                const existing = this.networkData.parityMap.get(data.tag);
+                if (existing) {
+                    if (!existing.holders.includes(data.nodeId)) {
+                        existing.holders.push(data.nodeId);
+                    }
+                } else {
+                    this.networkData.parityMap.set(data.tag, {
+                        holders: [data.nodeId],
+                        created: data.timestamp
+                    });
+                }
+                this.log(`Parity replicated: ${data.tag} on ${data.nodeId.slice(-8)}`);
+            }
+
+            cleanupStaleConnections() {
+                const now = Date.now();
+                const staleThreshold = 15000; // 15 seconds
+
+                this.networkData.nodes.forEach((node, nodeId) => {
+                    if (!node.isLocal && now - node.lastSeen > staleThreshold) {
+                        this.networkData.nodes.delete(nodeId);
+                        this.connections.delete(nodeId);
+                        this.peers.delete(nodeId);
+                    }
+                });
+            }
+
+            getNetworkStats() {
+                return {
+                    totalNodes: this.networkData.nodes.size,
+                    connectedPeers: this.connections.size,
+                    parityTags: this.networkData.parityMap.size,
+                    networkDensity: Array.from(this.networkData.nodes.values())
+                        .reduce((sum, n) => sum + n.density, 0).toFixed(2)
+                };
+            }
+
+            log(message, type = 'info') {
+                const timestamp = new Date().toLocaleTimeString();
+                const logEntry = { message: `[${timestamp}] ${message}`, type };
+                
+                if (this.onLog) this.onLog(logEntry);
+                console.log(`[FT-DFRP] ${message}`);
+            }
+        }
+
+        // Main React Component
+        function FTDFRPLiveDemo() {
+            const [network, setNetwork] = useState(null);
+            const [selectedNode, setSelectedNode] = useState(null);
+            const [searchResults, setSearchResults] = useState([]);
+            const [routePath, setRoutePath] = useState([]);
+            const [logs, setLogs] = useState([]);
+            const [stats, setStats] = useState({});
+            const canvasRef = useRef();
+
+            useEffect(() => {
+                const networkManager = new P2PNetworkManager(() => {
+                    setNetwork(prev => ({ ...prev })); // Force re-render
+                });
+
+                networkManager.onLog = (logEntry) => {
+                    setLogs(prev => [...prev.slice(-20), logEntry]); // Keep last 20 logs
+                };
+
+                setNetwork(networkManager);
+
+                // Update stats periodically
+                const statsInterval = setInterval(() => {
+                    if (networkManager) {
+                        setStats(networkManager.getNetworkStats());
+                    }
+                }, 1000);
+
+                return () => {
+                    clearInterval(statsInterval);
+                };
+            }, []);
+
+            const renderNetwork = useCallback(() => {
+                if (!network || !canvasRef.current) return;
+
+                const canvas = canvasRef.current;
+                const rect = canvas.getBoundingClientRect();
+                canvas.innerHTML = '';
+
+                // Render connections between peers
+                network.connections.forEach((connection, peerId) => {
+                    const peerNode = network.networkData.nodes.get(peerId);
+                    const localNode = network.networkData.nodes.get(network.nodeId);
+                    
+                    if (peerNode && localNode) {
+                        const line = document.createElement('div');
+                        line.className = 'connection connection-active';
+                        
+                        const dx = (peerNode.x - localNode.x) * rect.width / 100;
+                        const dy = (peerNode.y - localNode.y) * rect.height / 100;
+                        const length = Math.sqrt(dx * dx + dy * dy);
+                        const angle = Math.atan2(dy, dx) * 180 / Math.PI;
+                        
+                        line.style.left = `${localNode.x * rect.width / 100}px`;
+                        line.style.top = `${localNode.y * rect.height / 100}px`;
+                        line.style.width = `${length}px`;
+                        line.style.transform = `rotate(${angle}deg)`;
+                        
+                        canvas.appendChild(line);
+                    }
+                });
+
+                // Render nodes
+                network.networkData.nodes.forEach((node, nodeId) => {
+                    const nodeEl = document.createElement('div');
+                    nodeEl.className = `node ${node.isLocal ? 'node-local' : 'node-peer'}`;
+                    
+                    if (selectedNode === nodeId) {
+                        nodeEl.className += ' node-selected';
+                    }
+                    
+                    nodeEl.style.left = `${node.x * rect.width / 100 - 6}px`;
+                    nodeEl.style.top = `${node.y * rect.height / 100 - 6}px`;
+                    
+                    const status = node.isLocal ? 'LOCAL' : 
+                                 network.connections.has(nodeId) ? 'CONNECTED' : 'DISCOVERED';
+                    
+                    nodeEl.title = `${nodeId.slice(-8)}\n${status}\nDensity: ${node.density?.toFixed(3)}\nCoherence: ${node.coherence?.toFixed(3)}`;
+                    
+                    nodeEl.onclick = () => handleNodeClick(nodeId);
+                    
+                    canvas.appendChild(nodeEl);
+                });
+
+            }, [network, selectedNode]);
+
+            useEffect(() => {
+                renderNetwork();
+            }, [renderNetwork]);
+
+            const handleNodeClick = (nodeId) => {
+                setSelectedNode(nodeId);
+                if (network) {
+                    const results = network.findKNearest(nodeId, 3);
+                    setSearchResults(results);
+                }
+            };
+
+            const triggerParity = () => {
+                if (network) {
+                    const tag = `parity_${Date.now()}`;
+                    network.distributeParity(tag);
+                    showAnnouncement('Parity distributed to network');
+                }
+            };
+
+            const showAnnouncement = (message) => {
+                const bar = document.getElementById('announcement');
+                bar.textContent = message;
+                bar.classList.add('show');
+                setTimeout(() => bar.classList.remove('show'), 3000);
+            };
+
+            return (
+                <div className="container">
+                    <div className="header">
+                        <h1>FT-DFRP Live Network</h1>
+                        <p>Real-time P2P mesh demonstration with WebRTC</p>
+                        <p style={{fontSize: '0.9em', opacity: 0.8}}>
+                            Node ID: {network?.nodeId?.slice(-12) || 'Initializing...'}
+                        </p>
+                    </div>
+
+                    <div className="network-status">
+                        <div className="status-panel">
+                            <div className="status-title">Network Status</div>
+                            <div className="performance-metrics">
+                                <div className="metric">
+                                    <div className="metric-value">{stats.totalNodes || 0}</div>
+                                    <div className="metric-label">Total Nodes</div>
+                                </div>
+                                <div className="metric">
+                                    <div className="metric-value">{stats.connectedPeers || 0}</div>
+                                    <div className="metric-label">Connected</div>
+                                </div>
+                                <div className="metric">
+                                    <div className="metric-value">{stats.parityTags || 0}</div>
+                                    <div className="metric-label">Parity Tags</div>
+                                </div>
+                                <div className="metric">
+                                    <div className="metric-value">{stats.networkDensity || '0.00'}</div>
+                                    <div className="metric-label">Net Density</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="status-panel">
+                            <div className="status-title">Connected Peers</div>
+                            <div className="peer-list">
+                                {network?.connections.size > 0 ? 
+                                    Array.from(network.connections.keys()).map(peerId => (
+                                        <div key={peerId} className="peer-item">
+                                            {peerId.slice(-12)} - WebRTC Active
+                                        </div>
+                                    )) : 
+                                    <div style={{opacity: 0.6}}>No peers connected</div>
+                                }
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="controls">
+                        <button onClick={triggerParity} disabled={!network || network.connections.size === 0}>
+                            Distribute Parity
+                        </button>
+                        <button onClick={() => {
+                            if (network) network.announcePresence();
+                            showAnnouncement('Broadcasting presence');
+                        }}>
+                            Broadcast Presence
+                        </button>
+                        <button onClick={() => window.location.reload()}>
+                            Restart Node
+                        </button>
+                    </div>
+
+                    <div ref={canvasRef} className="network-canvas"></div>
+
+                    {selectedNode && (
+                        <div className="info-display">
+                            <h4 style={{color: '#00ff88', marginTop: 0}}>
+                                Node: {selectedNode.slice(-12)}
+                                {network?.networkData.nodes.get(selectedNode)?.isLocal && ' (LOCAL)'}
+                            </h4>
+                            {searchResults.length > 0 && (
+                                <div>
+                                    <strong>ANN Search Results:</strong>
+                                    {searchResults.map((result, i) => (
+                                        <div key={i} style={{margin: '5px 0', padding: '5px', background: 'rgba(0,255,136,0.1)'}}>
+                                            {result.nodeId.slice(-12)} - Similarity: {result.similarity.toFixed(4)}
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    <div className="info-display">
+                        <h4 style={{color: '#00ff88', marginTop: 0}}>Network Log</h4>
+                        {logs.slice(-10).map((log, i) => (
+                            <div key={i} className={`log-entry log-${log.type}`}>
+                                {log.message}
+                            </div>
+                        ))}
+                    </div>
+
+                    <div style={{
+                        background: 'rgba(0,255,136,0.1)',
+                        border: '1px solid #00ff88',
+                        padding: '15px',
+                        borderRadius: '8px',
+                        marginTop: '20px',
+                        textAlign: 'center'
+                    }}>
+                        <h3 style={{color: '#00ff88', margin: '0 0 10px 0'}}>Instructions</h3>
+                        <p>Open this page in multiple browser tabs or devices on the same network to see live P2P mesh formation.</p>
+                        <p>Each instance will automatically discover and connect to nearby peers using WebRTC.</p>
+                        <p><strong>Click nodes to perform ANN searches • Distribute parity across the live network</strong></p>
+                    </div>
+                </div>
+            );
+        }
+
+        ReactDOM.render(<FTDFRPLiveDemo />, document.getElementById('root'));
+
+        // Service Worker Registration for background networking
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('./sw.js')
+                .then((registration) => {
+                    console.log('[FT-DFRP] Service worker registered:', registration.scope);
+                })
+                .catch((error) => {
+                    console.log('[FT-DFRP] Service worker registration failed:', error);
+                });
+        }
+    </script>
+</body>
+</html>
