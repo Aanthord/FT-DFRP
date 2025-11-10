@@ -1,0 +1,48 @@
+{
+  "name": "FT-DFRP Live Network Demo",
+  "short_name": "FT-DFRP",
+  "description": "Live peer-to-peer mesh networking demonstration of Fractal Toroidal Density Field Routing Protocol",
+  "version": "1.0.0",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#0a0a0a",
+  "theme_color": "#00ff88",
+  "orientation": "any",
+  "scope": "./",
+  "lang": "en-US",
+  "dir": "ltr",
+  "categories": ["networking", "technology", "education", "simulation"],
+  "icons": [
+    {
+      "src": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTkyIiBoZWlnaHQ9IjE5MiIgdmlld0JveD0iMCAwIDE5MiAxOTIiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIxOTIiIGhlaWdodD0iMTkyIiBmaWxsPSIjMGEwYTBhIiByeD0iMjQiLz4KPHN2ZyB4PSI0OCIgeT0iNDgiIHdpZHRoPSI5NiIgaGVpZ2h0PSI5NiIgdmlld0JveD0iMCAwIDk2IDk2Ij4KICA8Y2lyY2xlIGN4PSI0OCIgY3k9IjQ4IiByPSI0IiBmaWxsPSIjMDBmZjg4IiBvcGFjaXR5PSIwLjgiLz4KICA8Y2lyY2xlIGN4PSIyNCIgY3k9IjI0IiByPSIzIiBmaWxsPSIjMDBmZjg4IiBvcGFjaXR5PSIwLjYiLz4KICA8Y2lyY2xlIGN4PSI3MiIgY3k9IjI0IiByPSIzIiBmaWxsPSIjMDBmZjg4IiBvcGFjaXR5PSIwLjYiLz4KICA8Y2lyY2xlIGN4PSIyNCIgY3k9IjcyIiByPSIzIiBmaWxsPSIjMDBmZjg4IiBvcGFjaXR5PSIwLjYiLz4KICA8Y2lyY2xlIGN4PSI3MiIgY3k9IjcyIiByPSIzIiBmaWxsPSIjMDBmZjg4IiBvcGFjaXR5PSIwLjYiLz4KICA8bGluZSB4MT0iNDgiIHkxPSI0OCIgeDI9IjI0IiB5Mj0iMjQiIHN0cm9rZT0iIzAwZmY4OCIgc3Ryb2tlLXdpZHRoPSIxLjUiIG9wYWNpdHk9IjAuNCIvPgogIDxsaW5lIHgxPSI0OCIgeTE9IjQ4IiB4Mj0iNzIiIHkyPSIyNCIgc3Ryb2tlPSIjMDBmZjg4IiBzdHJva2Utd2lkdGg9IjEuNSIgb3BhY2l0eT0iMC40Ii8+CiAgPGxpbmUgeDE9IjQ4IiB5MT0iNDgiIHgyPSIyNCIgeTI9IjcyIiBzdHJva2U9IiMwMGZmODgiIHN0cm9rZS13aWR0aD0iMS41IiBvcGFjaXR5PSIwLjQiLz4KICA8bGluZSB4MT0iNDgiIHkxPSI0OCIgeDI9IjcyIiB5Mj0iNzIiIHN0cm9rZT0iIzAwZmY4OCIgc3Ryb2tlLXdpZHRoPSIxLjUiIG9wYWNpdHk9IjAuNCIvPgo8L3N2Zz4KPC9zdmc+",
+      "sizes": "192x192",
+      "type": "image/svg+xml"
+    },
+    {
+      "src": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgdmlld0JveD0iMCAwIDUxMiA1MTIiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSI1MTIiIGhlaWdodD0iNTEyIiBmaWxsPSIjMGEwYTBhIiByeD0iNjQiLz4KPHN2ZyB4PSIxMjgiIHk9IjEyOCIgd2lkdGg9IjI1NiIgaGVpZ2h0PSIyNTYiIHZpZXdCb3g9IjAgMCAyNTYgMjU2Ij4KICA8Y2lyY2xlIGN4PSIxMjgiIGN5PSIxMjgiIHI9IjEyIiBmaWxsPSIjMDBmZjg4Ii8+CiAgPGNpcmNsZSBjeD0iNjQiIGN5PSI2NCIgcj0iOCIgZmlsbD0iIzAwZmY4OCIgb3BhY2l0eT0iMC44Ii8+CiAgPGNpcmNsZSBjeD0iMTkyIiBjeT0iNjQiIHI9IjgiIGZpbGw9IiMwMGZmODgiIG9wYWNpdHk9IjAuOCIvPgogIDxjaXJjbGUgY3g9IjY0IiBjeT0iMTkyIiByPSI4IiBmaWxsPSIjMDBmZjg4IiBvcGFjaXR5PSIwLjgiLz4KICA8Y2lyY2xlIGN4PSIxOTIiIGN5PSIxOTIiIHI9IjgiIGZpbGw9IiMwMGZmODgiIG9wYWNpdHk9IjAuOCIvPgogIDxjaXJjbGUgY3g9IjEyOCIgY3k9IjMyIiByPSI2IiBmaWxsPSIjMDBmZjg4IiBvcGFjaXR5PSIwLjYiLz4KICA8Y2lyY2xlIGN4PSIyMjQiIGN5PSIxMjgiIHI9IjYiIGZpbGw9IiMwMGZmODgiIG9wYWNpdHk9IjAuNiIvPgogIDxjaXJjbGUgY3g9IjEyOCIgY3k9IjIyNCIgcj0iNiIgZmlsbD0iIzAwZmY4OCIgb3BhY2l0eT0iMC42Ii8+CiAgPGNpcmNsZSBjeD0iMzIiIGN5PSIxMjgiIHI9IjYiIGZpbGw9IiMwMGZmODgiIG9wYWNpdHk9IjAuNiIvPgogIDxsaW5lIHgxPSIxMjgiIHkxPSIxMjgiIHgyPSI2NCIgeTI9IjY0IiBzdHJva2U9IiMwMGZmODgiIHN0cm9rZS13aWR0aD0iMyIgb3BhY2l0eT0iMC41Ii8+CiAgPGxpbmUgeDE9IjEyOCIgeTE9IjEyOCIgeDI9IjE5MiIgeTI9IjY0IiBzdHJva2U9IiMwMGZmODgiIHN0cm9rZS13aWR0aD0iMyIgb3BhY2l0eT0iMC41Ii8+CiAgPGxpbmUgeDE9IjEyOCIgeTE9IjEyOCIgeDI9IjY0IiB5Mj0iMTkyIiBzdHJva2U9IiMwMGZmODgiIHN0cm9rZS13aWR0aD0iMyIgb3BhY2l0eT0iMC41Ii8+CiAgPGxpbmUgeDE9IjEyOCIgeTE9IjEyOCIgeDI9IjE5MiIgeTI9IjE5MiIgc3Ryb2tlPSIjMDBmZjg4IiBzdHJva2Utd2lkdGg9IjMiIG9wYWNpdHk9IjAuNSIvPgo8L3N2Zz4KPC9zdmc+",
+      "sizes": "512x512",
+      "type": "image/svg+xml"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Start Network",
+      "url": "./ft-dfrp-live-demo.html",
+      "description": "Launch live P2P network demonstration"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTI4MCIgaGVpZ2h0PSI3MjAiIHZpZXdCb3g9IjAgMCAxMjgwIDcyMCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjEyODAiIGhlaWdodD0iNzIwIiBmaWxsPSIjMGEwYTBhIi8+Cjx0ZXh0IHg9IjY0MCIgeT0iMzYwIiBmaWxsPSIjMDBmZjg4IiBmb250LXNpemU9IjQ4IiBmb250LWZhbWlseT0ibW9ub3NwYWNlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5GVC1ERlJQIExpdmUgTmV0d29yazwvdGV4dD4KPHN2ZyB4PSI1MDAiIHk9IjIwMCIgd2lkdGg9IjI4MCIgaGVpZ2h0PSIyODAiIHZpZXdCb3g9IjAgMCAyODAgMjgwIj4KICA8Y2lyY2xlIGN4PSIxNDAiIGN5PSIxNDAiIHI9IjgiIGZpbGw9IiMwMGZmODgiLz4KICA8Y2lyY2xlIGN4PSI3MCIgY3k9IjcwIiByPSI2IiBmaWxsPSIjMDA4OGZmIi8+CiAgPGNpcmNsZSBjeD0iMjEwIiBjeT0iNzAiIHI9IjYiIGZpbGw9IiMwMDg4ZmYiLz4KICA8Y2lyY2xlIGN4PSI3MCIgY3k9IjIxMCIgcj0iNiIgZmlsbD0iIzAwODhmZiIvPgogIDxjaXJjbGUgY3g9IjIxMCIgY3k9IjIxMCIgcj0iNiIgZmlsbD0iIzAwODhmZiIvPgogIDxsaW5lIHgxPSIxNDAiIHkxPSIxNDAiIHgyPSI3MCIgeTI9IjcwIiBzdHJva2U9IiMwMGZmODgiIHN0cm9rZS13aWR0aD0iMiIgb3BhY2l0eT0iMC42Ii8+CiAgPGxpbmUgeDE9IjE0MCIgeTE9IjE0MCIgeDI9IjIxMCIgeTI9IjcwIiBzdHJva2U9IiMwMGZmODgiIHN0cm9rZS13aWR0aD0iMiIgb3BhY2l0eT0iMC42Ii8+CiAgPGxpbmUgeDE9IjE0MCIgeTE9IjE0MCIgeDI9IjcwIiB5Mj0iMjEwIiBzdHJva2U9IiMwMGZmODgiIHN0cm9rZS13aWR0aD0iMiIgb3BhY2l0eT0iMC42Ii8+CiAgPGxpbmUgeDE9IjE0MCIgeTE9IjE0MCIgeDI9IjIxMCIgeTI9IjIxMCIgc3Ryb2tlPSIjMDBmZjg4IiBzdHJva2Utd2lkdGg9IjIiIG9wYWNpdHk9IjAuNiIvPgo8L3N2Zz4KPC9zdmc+",
+      "sizes": "1280x720",
+      "type": "image/svg+xml",
+      "form_factor": "wide"
+    }
+  ],
+  "prefer_related_applications": false,
+  "serviceworker": {
+    "src": "./sw.js",
+    "scope": "./",
+    "use_cache": true
+  }
+}
