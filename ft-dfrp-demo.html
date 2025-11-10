@@ -1,0 +1,689 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FT-DFRP: Fractal Toroidal Density Field Routing Protocol</title>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+            font-family: 'Consolas', 'Monaco', monospace;
+            background: linear-gradient(135deg, #1a1a2e, #16213e);
+            color: #e94560;
+            overflow-x: hidden;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            background: rgba(0,0,0,0.3);
+            padding: 20px;
+            border-radius: 10px;
+            border: 1px solid #e94560;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 2.5em;
+            text-shadow: 0 0 10px #e94560;
+        }
+        .header p {
+            margin: 10px 0;
+            color: #0f4c75;
+            font-size: 1.1em;
+        }
+        .demo-section {
+            background: rgba(0,0,0,0.4);
+            border: 1px solid #0f4c75;
+            border-radius: 10px;
+            margin: 20px 0;
+            padding: 20px;
+        }
+        .section-title {
+            color: #e94560;
+            font-size: 1.5em;
+            margin-bottom: 15px;
+            border-bottom: 2px solid #e94560;
+            padding-bottom: 5px;
+        }
+        .network-canvas {
+            width: 100%;
+            height: 500px;
+            background: #000;
+            border: 2px solid #e94560;
+            border-radius: 5px;
+            position: relative;
+            overflow: hidden;
+        }
+        .controls {
+            display: flex;
+            gap: 15px;
+            margin: 15px 0;
+            flex-wrap: wrap;
+        }
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        .control-group label {
+            color: #0f4c75;
+            font-size: 0.9em;
+        }
+        button {
+            background: linear-gradient(45deg, #e94560, #0f4c75);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-family: inherit;
+            transition: all 0.3s;
+        }
+        button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 15px rgba(233, 69, 96, 0.5);
+        }
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+        input, select {
+            background: #1a1a2e;
+            border: 1px solid #0f4c75;
+            color: #e94560;
+            padding: 5px 10px;
+            border-radius: 3px;
+            font-family: inherit;
+        }
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 15px 0;
+        }
+        .stat-box {
+            background: rgba(15, 76, 117, 0.2);
+            padding: 15px;
+            border-radius: 5px;
+            border: 1px solid #0f4c75;
+        }
+        .stat-label {
+            color: #0f4c75;
+            font-size: 0.9em;
+        }
+        .stat-value {
+            color: #e94560;
+            font-size: 1.2em;
+            font-weight: bold;
+        }
+        .node {
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .node:hover {
+            transform: scale(1.5);
+        }
+        .connection {
+            position: absolute;
+            height: 1px;
+            background: rgba(15, 76, 117, 0.3);
+            transform-origin: left center;
+        }
+        .route-path {
+            background: rgba(233, 69, 96, 0.8);
+            height: 2px;
+        }
+        .parity-holder {
+            box-shadow: 0 0 10px #e94560;
+        }
+        .selected-node {
+            box-shadow: 0 0 15px #ffffff;
+            transform: scale(1.3);
+        }
+        .info-panel {
+            position: fixed;
+            right: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 300px;
+            background: rgba(0,0,0,0.9);
+            border: 1px solid #e94560;
+            border-radius: 10px;
+            padding: 15px;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        .license-info {
+            background: rgba(233, 69, 96, 0.1);
+            border: 1px solid #e94560;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 20px;
+            font-size: 0.9em;
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef, useCallback } = React;
+
+        // Core FT-DFRP simulation classes
+        class TorusNode {
+            constructor(id, x, y) {
+                this.id = id;
+                this.x = x;
+                this.y = y;
+                this.density = Math.random();
+                this.coherence = Math.random();
+                this.vector = Array(8).fill(0).map(() => Math.random() * 2 - 1);
+                this.neighbors = [];
+                this.parityTags = [];
+                this.hash = `node${id}hash`;
+                this.load = 0;
+                this.selected = false;
+            }
+
+            normalizeVector() {
+                const norm = Math.sqrt(this.vector.reduce((sum, v) => sum + v * v, 0));
+                this.vector = this.vector.map(v => v / (norm + 1e-8));
+            }
+
+            cosineSimilarity(other) {
+                let dot = 0, normA = 0, normB = 0;
+                for (let i = 0; i < this.vector.length; i++) {
+                    dot += this.vector[i] * other.vector[i];
+                    normA += this.vector[i] * this.vector[i];
+                    normB += other.vector[i] * other.vector[i];
+                }
+                return (normA === 0 || normB === 0) ? 0 : dot / (Math.sqrt(normA) * Math.sqrt(normB));
+            }
+
+            euclideanDistance(other) {
+                return Math.sqrt(this.vector.reduce((sum, v, i) => sum + Math.pow(v - other.vector[i], 2), 0));
+            }
+
+            addParityTag(tag) {
+                if (!this.parityTags.includes(tag)) {
+                    this.parityTags.push(tag);
+                    this.load = this.parityTags.length;
+                }
+            }
+
+            removeParityTag(tag) {
+                this.parityTags = this.parityTags.filter(t => t !== tag);
+                this.load = this.parityTags.length;
+            }
+        }
+
+        class FTDFRPNetwork {
+            constructor(nodeCount = 50) {
+                this.nodes = [];
+                this.routingConfig = {
+                    densityWeight: 0.4,
+                    similarityWeight: 0.3,
+                    coherenceWeight: 0.3,
+                    parityWeight: 0.5
+                };
+                this.initializeToroidalNetwork(nodeCount);
+            }
+
+            initializeToroidalNetwork(count) {
+                const gridSize = Math.ceil(Math.sqrt(count));
+                
+                for (let i = 0; i < count; i++) {
+                    const row = Math.floor(i / gridSize);
+                    const col = i % gridSize;
+                    const x = (col / gridSize) * 100;
+                    const y = (row / gridSize) * 100;
+                    
+                    const node = new TorusNode(i, x, y);
+                    node.normalizeVector();
+                    this.nodes.push(node);
+                }
+
+                // Create toroidal connections
+                this.createToroidalConnections(gridSize);
+            }
+
+            createToroidalConnections(gridSize) {
+                this.nodes.forEach((node, i) => {
+                    const row = Math.floor(i / gridSize);
+                    const col = i % gridSize;
+                    
+                    // Connect to neighbors with toroidal wrapping
+                    const neighbors = [
+                        ((row - 1 + gridSize) % gridSize) * gridSize + col, // up
+                        ((row + 1) % gridSize) * gridSize + col,           // down
+                        row * gridSize + ((col - 1 + gridSize) % gridSize), // left
+                        row * gridSize + ((col + 1) % gridSize),           // right
+                    ];
+                    
+                    node.neighbors = neighbors.filter(n => n < this.nodes.length && n !== i);
+                });
+            }
+
+            findKNearest(queryNodeId, k) {
+                const queryNode = this.nodes[queryNodeId];
+                const similarities = this.nodes
+                    .filter((_, i) => i !== queryNodeId)
+                    .map((node, i) => ({
+                        nodeId: i >= queryNodeId ? i + 1 : i,
+                        similarity: queryNode.cosineSimilarity(node),
+                        combinedScore: queryNode.cosineSimilarity(node) * queryNode.coherence + node.density
+                    }))
+                    .sort((a, b) => b.combinedScore - a.combinedScore)
+                    .slice(0, k);
+                
+                return similarities;
+            }
+
+            computeHybridNextHop(currentId, targetVector) {
+                const current = this.nodes[currentId];
+                let bestId = -1;
+                let bestScore = -Infinity;
+
+                current.neighbors.forEach(neighborId => {
+                    const neighbor = this.nodes[neighborId];
+                    const density = neighbor.density;
+                    const similarity = targetVector ? 
+                        neighbor.vector.reduce((dot, v, i) => dot + v * targetVector[i], 0) : 0;
+                    const coherence = neighbor.coherence;
+
+                    const score = this.routingConfig.densityWeight * density +
+                                this.routingConfig.similarityWeight * similarity +
+                                this.routingConfig.coherenceWeight * coherence;
+
+                    if (score > bestScore) {
+                        bestScore = score;
+                        bestId = neighborId;
+                    }
+                });
+
+                return bestId;
+            }
+
+            distributeParity(tag, minReplicas = 3) {
+                // Williams tree evaluation for optimal placement
+                const candidates = this.nodes
+                    .map((node, i) => ({
+                        id: i,
+                        score: this.routingConfig.densityWeight / (1 + node.load) +
+                               this.routingConfig.coherenceWeight * node.coherence +
+                               this.routingConfig.similarityWeight * node.density
+                    }))
+                    .sort((a, b) => b.score - a.score)
+                    .slice(0, minReplicas);
+
+                candidates.forEach(candidate => {
+                    this.nodes[candidate.id].addParityTag(tag);
+                });
+
+                return candidates.map(c => c.id);
+            }
+
+            recoverParity(tag) {
+                const holders = this.nodes
+                    .map((node, i) => node.parityTags.includes(tag) ? i : -1)
+                    .filter(i => i !== -1);
+                
+                if (holders.length === 0) return [];
+
+                // Find optimal recovery nodes using tree evaluation
+                const recoveryTargets = this.nodes
+                    .map((node, i) => ({
+                        id: i,
+                        distance: Math.min(...holders.map(h => this.calculateNetworkDistance(i, h))),
+                        load: node.load,
+                        density: node.density
+                    }))
+                    .filter(n => !holders.includes(n.id))
+                    .sort((a, b) => (a.distance / (1 + a.load)) - (b.distance / (1 + b.load)))
+                    .slice(0, 2);
+
+                recoveryTargets.forEach(target => {
+                    this.nodes[target.id].addParityTag(tag);
+                });
+
+                return recoveryTargets.map(t => t.id);
+            }
+
+            calculateNetworkDistance(nodeA, nodeB) {
+                const a = this.nodes[nodeA];
+                const b = this.nodes[nodeB];
+                return Math.sqrt(Math.pow(a.x - b.x, 2) + Math.pow(a.y - b.y, 2));
+            }
+
+            findShortestPath(fromId, toId) {
+                const visited = new Set();
+                const queue = [{nodeId: fromId, path: [fromId]}];
+                
+                while (queue.length > 0) {
+                    const {nodeId, path} = queue.shift();
+                    
+                    if (nodeId === toId) return path;
+                    if (visited.has(nodeId)) continue;
+                    
+                    visited.add(nodeId);
+                    
+                    this.nodes[nodeId].neighbors.forEach(neighborId => {
+                        if (!visited.has(neighborId)) {
+                            queue.push({
+                                nodeId: neighborId,
+                                path: [...path, neighborId]
+                            });
+                        }
+                    });
+                }
+                
+                return [];
+            }
+        }
+
+        // Main React component
+        function FTDFRPDemo() {
+            const canvasRef = useRef();
+            const [network, setNetwork] = useState(null);
+            const [selectedNode, setSelectedNode] = useState(null);
+            const [searchResults, setSearchResults] = useState([]);
+            const [routePath, setRoutePath] = useState([]);
+            const [parityHolders, setParityHolders] = useState(new Set());
+            const [stats, setStats] = useState({});
+            const [currentDemo, setCurrentDemo] = useState('topology');
+
+            useEffect(() => {
+                const net = new FTDFRPNetwork(64);
+                setNetwork(net);
+                updateStats(net);
+            }, []);
+
+            const updateStats = (net) => {
+                const totalDensity = net.nodes.reduce((sum, n) => sum + n.density, 0);
+                const avgCoherence = net.nodes.reduce((sum, n) => sum + n.coherence, 0) / net.nodes.length;
+                const totalParity = net.nodes.reduce((sum, n) => sum + n.parityTags.length, 0);
+                const maxLoad = Math.max(...net.nodes.map(n => n.load));
+
+                setStats({
+                    totalNodes: net.nodes.length,
+                    totalDensity: totalDensity.toFixed(2),
+                    avgCoherence: avgCoherence.toFixed(3),
+                    totalParity,
+                    maxLoad
+                });
+            };
+
+            const renderNetwork = useCallback(() => {
+                if (!network || !canvasRef.current) return;
+
+                const canvas = canvasRef.current;
+                const rect = canvas.getBoundingClientRect();
+                const width = rect.width;
+                const height = rect.height;
+
+                // Clear previous render
+                canvas.innerHTML = '';
+
+                // Render connections first
+                network.nodes.forEach(node => {
+                    node.neighbors.forEach(neighborId => {
+                        const neighbor = network.nodes[neighborId];
+                        const line = document.createElement('div');
+                        line.className = 'connection';
+                        
+                        const dx = (neighbor.x - node.x) * width / 100;
+                        const dy = (neighbor.y - node.y) * height / 100;
+                        const length = Math.sqrt(dx * dx + dy * dy);
+                        const angle = Math.atan2(dy, dx) * 180 / Math.PI;
+                        
+                        line.style.left = `${node.x * width / 100}px`;
+                        line.style.top = `${node.y * height / 100}px`;
+                        line.style.width = `${length}px`;
+                        line.style.transform = `rotate(${angle}deg)`;
+                        
+                        if (routePath.includes(node.id) && routePath.includes(neighborId)) {
+                            line.className += ' route-path';
+                        }
+                        
+                        canvas.appendChild(line);
+                    });
+                });
+
+                // Render nodes
+                network.nodes.forEach((node, i) => {
+                    const nodeEl = document.createElement('div');
+                    nodeEl.className = 'node';
+                    
+                    // Color based on density
+                    const intensity = Math.floor(node.density * 255);
+                    nodeEl.style.backgroundColor = `rgb(${intensity}, ${Math.floor(node.coherence * 255)}, 200)`;
+                    
+                    if (parityHolders.has(i)) {
+                        nodeEl.className += ' parity-holder';
+                    }
+                    
+                    if (selectedNode === i) {
+                        nodeEl.className += ' selected-node';
+                    }
+                    
+                    nodeEl.style.left = `${node.x * width / 100 - 4}px`;
+                    nodeEl.style.top = `${node.y * height / 100 - 4}px`;
+                    
+                    nodeEl.onclick = () => handleNodeClick(i);
+                    nodeEl.title = `Node ${i}\nDensity: ${node.density.toFixed(3)}\nCoherence: ${node.coherence.toFixed(3)}\nLoad: ${node.load}\nParity: ${node.parityTags.join(', ')}`;
+                    
+                    canvas.appendChild(nodeEl);
+                });
+            }, [network, selectedNode, parityHolders, routePath]);
+
+            useEffect(() => {
+                renderNetwork();
+            }, [renderNetwork]);
+
+            const handleNodeClick = (nodeId) => {
+                setSelectedNode(nodeId);
+                
+                if (currentDemo === 'ann') {
+                    performANNSearch(nodeId);
+                } else if (currentDemo === 'routing' && selectedNode !== null && selectedNode !== nodeId) {
+                    performRouting(selectedNode, nodeId);
+                }
+            };
+
+            const performANNSearch = (queryNodeId) => {
+                if (!network) return;
+                
+                const results = network.findKNearest(queryNodeId, 5);
+                setSearchResults(results);
+                
+                // Highlight similar nodes
+                const similarNodes = new Set(results.map(r => r.nodeId));
+                setParityHolders(similarNodes);
+            };
+
+            const performRouting = (fromId, toId) => {
+                if (!network) return;
+                
+                const path = network.findShortestPath(fromId, toId);
+                setRoutePath(path);
+                
+                setTimeout(() => setRoutePath([]), 3000);
+            };
+
+            const distributeParity = () => {
+                if (!network) return;
+                
+                const tag = `parity_${Date.now()}`;
+                const holders = network.distributeParity(tag, 3);
+                setParityHolders(new Set(holders));
+                updateStats(network);
+                
+                setTimeout(() => setParityHolders(new Set()), 3000);
+            };
+
+            const simulateFault = () => {
+                if (!network || parityHolders.size === 0) return;
+                
+                // Remove parity from random holder
+                const holders = Array.from(parityHolders);
+                const faultyNode = holders[Math.floor(Math.random() * holders.length)];
+                const tag = network.nodes[faultyNode].parityTags[0];
+                
+                if (tag) {
+                    network.nodes[faultyNode].removeParityTag(tag);
+                    const recoveredNodes = network.recoverParity(tag);
+                    
+                    setParityHolders(new Set([...holders.filter(h => h !== faultyNode), ...recoveredNodes]));
+                    updateStats(network);
+                }
+            };
+
+            return (
+                <div className="container">
+                    <div className="header">
+                        <h1>FT-DFRP</h1>
+                        <p><strong>Fractal Toroidal Density Field Routing Protocol</strong></p>
+                        <p>Advanced distributed networking with ANN-based similarity search, parity distribution, and hybrid routing</p>
+                    </div>
+
+                    <div className="demo-section">
+                        <div className="section-title">Network Visualization</div>
+                        
+                        <div className="controls">
+                            <div className="control-group">
+                                <label>Demo Mode:</label>
+                                <select value={currentDemo} onChange={(e) => setCurrentDemo(e.target.value)}>
+                                    <option value="topology">Network Topology</option>
+                                    <option value="ann">ANN k-Nearest Search</option>
+                                    <option value="routing">Hybrid Routing</option>
+                                    <option value="parity">Parity Distribution</option>
+                                </select>
+                            </div>
+                            
+                            <button onClick={() => setNetwork(new FTDFRPNetwork(64))}>
+                                Regenerate Network
+                            </button>
+                            
+                            {currentDemo === 'parity' && (
+                                <>
+                                    <button onClick={distributeParity}>Distribute Parity</button>
+                                    <button onClick={simulateFault}>Simulate Fault</button>
+                                </>
+                            )}
+                            
+                            <button onClick={() => {
+                                setSelectedNode(null);
+                                setSearchResults([]);
+                                setRoutePath([]);
+                                setParityHolders(new Set());
+                            }}>
+                                Clear Selection
+                            </button>
+                        </div>
+
+                        <div ref={canvasRef} className="network-canvas"></div>
+
+                        <div className="stats">
+                            <div className="stat-box">
+                                <div className="stat-label">Total Nodes</div>
+                                <div className="stat-value">{stats.totalNodes || 0}</div>
+                            </div>
+                            <div className="stat-box">
+                                <div className="stat-label">Network Density</div>
+                                <div className="stat-value">{stats.totalDensity || 0}</div>
+                            </div>
+                            <div className="stat-box">
+                                <div className="stat-label">Avg Coherence</div>
+                                <div className="stat-value">{stats.avgCoherence || 0}</div>
+                            </div>
+                            <div className="stat-box">
+                                <div className="stat-label">Total Parity Tags</div>
+                                <div className="stat-value">{stats.totalParity || 0}</div>
+                            </div>
+                            <div className="stat-box">
+                                <div className="stat-label">Max Node Load</div>
+                                <div className="stat-value">{stats.maxLoad || 0}</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {selectedNode !== null && (
+                        <div className="demo-section">
+                            <div className="section-title">Node Information</div>
+                            <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px'}}>
+                                <div>
+                                    <p><strong>Node ID:</strong> {selectedNode}</p>
+                                    <p><strong>Density:</strong> {network?.nodes[selectedNode]?.density.toFixed(4)}</p>
+                                    <p><strong>Coherence:</strong> {network?.nodes[selectedNode]?.coherence.toFixed(4)}</p>
+                                    <p><strong>Load:</strong> {network?.nodes[selectedNode]?.load}</p>
+                                    <p><strong>Neighbors:</strong> {network?.nodes[selectedNode]?.neighbors.length}</p>
+                                    <p><strong>Parity Tags:</strong> {network?.nodes[selectedNode]?.parityTags.join(', ') || 'None'}</p>
+                                </div>
+                                
+                                {searchResults.length > 0 && (
+                                    <div>
+                                        <h4 style={{color: '#e94560', marginBottom: '10px'}}>ANN Search Results:</h4>
+                                        {searchResults.map((result, i) => (
+                                            <div key={i} style={{marginBottom: '8px', padding: '8px', background: 'rgba(15, 76, 117, 0.2)', borderRadius: '3px'}}>
+                                                <strong>Node {result.nodeId}</strong><br/>
+                                                Similarity: {result.similarity.toFixed(4)}<br/>
+                                                Combined Score: {result.combinedScore.toFixed(4)}
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    )}
+
+                    <div className="demo-section">
+                        <div className="section-title">Algorithm Features</div>
+                        <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '20px'}}>
+                            <div style={{background: 'rgba(15, 76, 117, 0.1)', padding: '15px', borderRadius: '5px'}}>
+                                <h4 style={{color: '#e94560'}}>ANN k-Nearest Search</h4>
+                                <p>Cosine similarity-based vector search with density weighting and coherence scoring for optimal neighbor discovery.</p>
+                            </div>
+                            <div style={{background: 'rgba(15, 76, 117, 0.1)', padding: '15px', borderRadius: '5px'}}>
+                                <h4 style={{color: '#e94560'}}>Williams Tree Evaluation</h4>
+                                <p>Recursive tree-based parity distribution using complexity theory for optimal placement and fault recovery.</p>
+                            </div>
+                            <div style={{background: 'rgba(15, 76, 117, 0.1)', padding: '15px', borderRadius: '5px'}}>
+                                <h4 style={{color: '#e94560'}}>Hybrid Routing</h4>
+                                <p>Density field routing combined with vector similarity and parity-aware path optimization.</p>
+                            </div>
+                            <div style={{background: 'rgba(15, 76, 117, 0.1)', padding: '15px', borderRadius: '5px'}}>
+                                <h4 style={{color: '#e94560'}}>FHE Integration</h4>
+                                <p>Fully homomorphic encryption support for privacy-preserving density computations (stubbed in demo).</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="license-info">
+                        <h3 style={{color: '#e94560', margin: '0 0 10px 0'}}>Licensing</h3>
+                        <p><strong>Dual Licensed:</strong></p>
+                        <p>• AGPL-3.0 for research/academic use</p>
+                        <p>• Commercial license available - contact michael.doran.808@gmail.com</p>
+                        <p style={{marginTop: '10px', fontSize: '0.8em', color: '#0f4c75'}}>
+                            Copyright (C) 2025 Michael Doran - Pinnacle Quantum Group
+                        </p>
+                    </div>
+                </div>
+            );
+        }
+
+        ReactDOM.render(<FTDFRPDemo />, document.getElementById('root'));
+    </script>
+</body>
+</html>
