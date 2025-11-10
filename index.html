@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="refresh" content="0; url=./ft-dfrp-live-demo.html">
+    <title>FT-DFRP Demo - Redirecting...</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 40px;
+            background: linear-gradient(135deg, #1a1a2e, #16213e);
+            color: #e94560;
+            font-family: 'Consolas', 'Monaco', monospace;
+            text-align: center;
+        }
+        .loading {
+            margin-top: 100px;
+        }
+        .spinner {
+            width: 40px;
+            height: 40px;
+            margin: 20px auto;
+            border: 4px solid #0f4c75;
+            border-top: 4px solid #e94560;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="loading">
+        <h1>FT-DFRP</h1>
+        <p>Fractal Toroidal Density Field Routing Protocol</p>
+        <div class="spinner"></div>
+        <p>Loading demo...</p>
+        <p><a href="./ft-dfrp-live-demo.html" style="color: #e94560;">Click here if not redirected automatically</a></p>
+    </div>
+    
+    <script>
+        // Fallback redirect after 2 seconds
+        setTimeout(() => {
+            window.location.href = './ft-dfrp-live-demo.html';
+        }, 2000);
+    </script>
+</body>
+</html>
